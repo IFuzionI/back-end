@@ -96,9 +96,9 @@ mongoose
     console.log("✅ Database Connected");
 
     const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
-      console.log(`🚀 Server Started at http://localhost:${PORT}`);
-    });
+    app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server Started at http://0.0.0.0:${PORT}`);
+});
   })
   .catch((error) => {
     console.error("❌ Erro ao conectar no MongoDB:", error);
