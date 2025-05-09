@@ -35,7 +35,7 @@ app.listen(PORT, () => {
 });
 
 // Conexão com MongoDB
-const mongoURL = process.env.MONGODB_URI || process.argv[2];
+const mongoURL = process.env.MONGODB_URL || process.argv[2];
 if (!mongoURL) {
   console.error("Nenhuma URL do MongoDB foi fornecida!");
   process.exit(1);
