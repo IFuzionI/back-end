@@ -91,14 +91,10 @@ if (!mongoURL) {
 
 // Conectar ao MongoDB
 mongoose
-  .connect(mongoURL, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-  })
+  .connect(mongoURL)
   .then(() => {
     console.log("✅ Database Connected");
 
-    // Só iniciar o servidor após conexão
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {
       console.log(`🚀 Server Started at http://localhost:${PORT}`);
@@ -106,5 +102,5 @@ mongoose
   })
   .catch((error) => {
     console.error("❌ Erro ao conectar no MongoDB:", error);
-    process.exit(1); // encerra o processo se falhar
+    process.exit(1);
   });
