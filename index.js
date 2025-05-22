@@ -1,7 +1,6 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const routes = require("./routes/routes");
-const userRoutes = require("./routes/userRoutes");
 const app = express();
 
 // Middleware de CORS
@@ -9,7 +8,7 @@ app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader(
     "Access-Control-Allow-Methods",
-    "HEAD, GET, POST, PATCH, PUT, DELETE"
+    "HEAD, GET, POST, PATCH, DELETE"
   );
   res.header(
     "Access-Control-Allow-Headers",
@@ -23,12 +22,11 @@ app.use(express.json());
 
 // Rota básica pra testar se está no ar
 app.get("/", (req, res) => {
-  res.send("API está no ar!");
+  res.send("API do Fernando e Viccenzo tá no ar! 🔥");
 });
 
 // Rotas principais
 app.use("/api", routes);
-app.use("/api/users", userRoutes);
 
 // Porta padrão
 const PORT = process.env.PORT || 3000;
@@ -37,10 +35,9 @@ app.listen(PORT, () => {
 });
 
 // Conexão com MongoDB
-const mongoURL =
-  "mongodb+srv://viccenzo243515:tenera2025@cluster0.efkttba.mongodb.net/tarefasDB?retryWrites=true&w=majority&appName=Cluster0";
+const mongoURL = process.env.MONGODB_URI || process.argv[2];
 if (!mongoURL) {
-  console.error("Nenhuma URL do MongoDB foi fornecida!");
+  console.error("⚠️ Nenhuma URL do MongoDB foi fornecida!");
   process.exit(1);
 }
 
