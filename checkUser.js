@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const User = require('./models/user.js');
+const User = require('./models/User');
 
 const mongoURL = "mongodb+srv://viccenzo243515:tenera2025@cluster0.efkttba.mongodb.net/tarefasDB?retryWrites=true&w=majority&appName=Cluster0";
 
