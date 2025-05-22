@@ -16,7 +16,7 @@ router.post("/post", async (req, res) => {
   }
 });
 
-router.get("/getAll", async (req, res) => {
+router.get("/getAll", verificaJWT, async (req, res, next) => {
   try {
     const resultados = await modeloTarefa.find();
     res.json(resultados);
@@ -49,3 +49,44 @@ router.patch("/update/:id", async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
+
+function verificaUsuarioSenha(req, res, next) {
+  if (req.body.nome !== "branqs" || req.body.senha !== "1234") {
+    return res
+      .status(401)
+      .json({ auth: false, message: "Usuario ou Senha incorreta" });
+  }
+  next();
+}
+
+//Autenticacao
+//Segunda forma de Autenticacao - Busca usuário no BD e compara senha
+const userModel = require('../models/user');
+var jwt = require('jsonwebtoken');
+router.post('/login', async (req, res) => {
+try {
+const data = await userModel.findOne({ 'nome': req.body.nome });
+if (data != null && data.senha === req.body.senha) {
+const token = jwt.sign({ id: req.body.user }, 'segredo',
+{ expiresIn: 300 });
+return res.json({ token: token });
+}
+res.status(500).json({ message: 'Login invalido!' });
+} catch (error) {
+res.status(500).json({ message: error.message })
+}
+})
+
+//Nova forma de Autorizacao
+function verificaJWT(req, res, next) {
+  const token = req.headers["id-token"];
+  if (!token)
+    return res
+      .status(401)
+      .json({ auth: false, message: "Token não fornecido" });
+
+  jwt.verify(token, "segredo", function (err, decoded) {
+    if (err) return res.status(500).json({ auth: false, message: "Falha !" });
+    next();
+  });
+}

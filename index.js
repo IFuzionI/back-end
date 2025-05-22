@@ -12,7 +12,7 @@ app.use((req, res, next) => {
   );
   res.header(
     "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept"
+    "Origin, X-Requested-With, Content-Type, Accept, id-token"
   );
   next();
 });
@@ -35,7 +35,8 @@ app.listen(PORT, () => {
 });
 
 // Conexão com MongoDB
-const mongoURL = process.env.MONGODB_URI || process.argv[2];
+const mongoURL =
+  "mongodb+srv://viccenzo243515:tenera2025@cluster0.efkttba.mongodb.net/tarefasDB?retryWrites=true&w=majority&appName=Cluster0";
 if (!mongoURL) {
   console.error("Nenhuma URL do MongoDB foi fornecida!");
   process.exit(1);
