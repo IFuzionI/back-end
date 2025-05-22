@@ -17,6 +17,44 @@ const isAdmin = async (req, res, next) => {
     }
 };
 
+// Rota especial para criar o primeiro usuário admin
+router.post('/first-admin', async (req, res) => {
+    try {
+        // Verifica se já existe algum usuário admin
+        const existingAdmin = await User.findOne({ role: 'admin' });
+        if (existingAdmin) {
+            return res.status(400).json({ message: 'Já existe um usuário administrador no sistema.' });
+        }
+
+        const { nome, senha } = req.body;
+        if (!nome || !senha) {
+            return res.status(400).json({ message: 'Nome e senha são obrigatórios.' });
+        }
+
+        // Verifica se o nome já existe
+        const existingUser = await User.findOne({ nome });
+        if (existingUser) {
+            return res.status(400).json({ message: 'Nome de usuário já cadastrado.' });
+        }
+
+        // Criptografa a senha
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(senha, salt);
+
+        // Cria o usuário admin
+        const adminUser = new User({
+            nome,
+            senha: hashedPassword,
+            role: 'admin'
+        });
+
+        await adminUser.save();
+        res.status(201).json({ message: 'Usuário administrador criado com sucesso!' });
+    } catch (error) {
+        res.status(500).json({ message: 'Erro ao criar usuário administrador.' });
+    }
+});
+
 // Listar todos os usuários (apenas admin)
 router.get('/', isAdmin, async (req, res) => {
     try {
