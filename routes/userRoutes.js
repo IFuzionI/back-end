@@ -2,6 +2,23 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/UserModel');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
+// Middleware para verificar se o usuário está autenticado
+function verificaJWT(req, res, next) {
+    const token = req.headers["id-token"];
+    if (!token)
+        return res
+            .status(401)
+            .json({ auth: false, message: "Token não fornecido" });
+
+    jwt.verify(token, "segredo", function (err, decoded) {
+        if (err) return res.status(500).json({ auth: false, message: "Falha na autenticação!" });
+        req.userId = decoded.id;
+        req.userRole = decoded.role;
+        next();
+    });
+}
 
 // Middleware para verificar se o usuário é admin
 const isAdmin = async (req, res, next) => {
@@ -16,6 +33,19 @@ const isAdmin = async (req, res, next) => {
         res.status(500).json({ message: 'Erro ao verificar permissões' });
     }
 };
+
+// Rota para obter informações do usuário logado
+router.get('/me', verificaJWT, async (req, res) => {
+    try {
+        const user = await User.findById(req.userId, { senha: 0 });
+        if (!user) {
+            return res.status(404).json({ message: 'Usuário não encontrado' });
+        }
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ message: 'Erro ao buscar usuário' });
+    }
+});
 
 // Rota especial para criar o primeiro usuário admin
 router.post('/first-admin', async (req, res) => {
