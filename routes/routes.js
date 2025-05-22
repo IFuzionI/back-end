@@ -1,7 +1,11 @@
 const express = require("express");
 const router = express.Router();
-module.exports = router;
 const modeloTarefa = require("../models/tarefa");
+const User = require("../models/User");
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+
+module.exports = router;
 
 router.post("/post", async (req, res) => {
   const objetoTarefa = new modeloTarefa({
@@ -60,33 +64,49 @@ function verificaUsuarioSenha(req, res, next) {
 }
 
 //Autenticacao
-//Segunda forma de Autenticacao - Busca usuário no BD e compara senha
-const userModel = require('../models/user');
-var jwt = require('jsonwebtoken');
 router.post('/login', async (req, res) => {
-try {
-const data = await userModel.findOne({ 'nome': req.body.nome });
-if (data != null && data.senha === req.body.senha) {
-const token = jwt.sign({ id: req.body.user }, 'segredo',
-{ expiresIn: 300 });
-return res.json({ token: token });
-}
-res.status(500).json({ message: 'Login invalido!' });
-} catch (error) {
-res.status(500).json({ message: error.message })
-}
-})
+    try {
+        const user = await User.findOne({ 'nome': req.body.nome });
+        if (!user) {
+            return res.status(401).json({ message: 'Usuário não encontrado' });
+        }
+
+        const validPassword = await bcrypt.compare(req.body.senha, user.senha);
+        if (!validPassword) {
+            return res.status(401).json({ message: 'Senha inválida' });
+        }
+
+        const token = jwt.sign(
+            { id: user._id, role: user.role },
+            'segredo',
+            { expiresIn: 300 }
+        );
+
+        res.json({
+            token: token,
+            user: {
+                id: user._id,
+                nome: user.nome,
+                role: user.role
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
 
 //Nova forma de Autorizacao
 function verificaJWT(req, res, next) {
-  const token = req.headers["id-token"];
-  if (!token)
-    return res
-      .status(401)
-      .json({ auth: false, message: "Token não fornecido" });
+    const token = req.headers["id-token"];
+    if (!token)
+        return res
+            .status(401)
+            .json({ auth: false, message: "Token não fornecido" });
 
-  jwt.verify(token, "segredo", function (err, decoded) {
-    if (err) return res.status(500).json({ auth: false, message: "Falha !" });
-    next();
-  });
+    jwt.verify(token, "segredo", function (err, decoded) {
+        if (err) return res.status(500).json({ auth: false, message: "Falha na autenticação!" });
+        req.userId = decoded.id;
+        req.userRole = decoded.role;
+        next();
+    });
 }

@@ -1,6 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const routes = require("./routes/routes");
+const userRoutes = require("./routes/userRoutes");
 const app = express();
 
 // Middleware de CORS
@@ -8,7 +9,7 @@ app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader(
     "Access-Control-Allow-Methods",
-    "HEAD, GET, POST, PATCH, DELETE"
+    "HEAD, GET, POST, PATCH, PUT, DELETE"
   );
   res.header(
     "Access-Control-Allow-Headers",
@@ -27,6 +28,7 @@ app.get("/", (req, res) => {
 
 // Rotas principais
 app.use("/api", routes);
+app.use("/api/users", userRoutes);
 
 // Porta padrão
 const PORT = process.env.PORT || 3000;
