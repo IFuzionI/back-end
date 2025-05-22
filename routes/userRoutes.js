@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
+const User = require('../models/UserModel');
 const bcrypt = require('bcryptjs');
 
 // Middleware para verificar se o usuário é admin
