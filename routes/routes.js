@@ -3,6 +3,7 @@ const router = express.Router();
 const modeloTarefa = require("../models/tarefa");
 const userModel = require("../models/user");
 const jwt = require("jsonwebtoken");
+const { randomBytes, createHash } = require('crypto');
 
 // Criar nova tarefa
 router.post("/post", async (req, res) => {
@@ -55,16 +56,6 @@ router.patch("/update/:id", async (req, res) => {
   }
 });
 
-// Verificação simples (desativada, não usada mais)
-function verificaUsuarioSenha(req, res, next) {
-  if (data != null && data.senha === req.body.senha) {
-    return res
-      .status(401)
-      .json({ auth: false, message: "Usuario ou Senha incorreta" });
-  }
-  next();
-}
-
 // Autenticação JWT (verifica token)
 function verificaJWT(req, res, next) {
   const token = req.headers["id-token"];
@@ -80,7 +71,7 @@ function verificaJWT(req, res, next) {
         .json({ auth: false, message: "Falha na verificação do token" });
     }
     req.userId = decoded.id;
-    req.isAdmin = decoded.admin; // adiciona flag admin na request
+    req.isAdmin = decoded.admin;
     next();
   });
 }
@@ -102,11 +93,17 @@ async function verificaAdmin(req, res, next) {
   }
 }
 
+// Validação de senha com hash e salt
+function validPassword(senha, hashBD, saltBD) {
+  const hashCalculado = createHash('sha256').update(senha + saltBD).digest('hex');
+  return hashCalculado === hashBD;
+}
+
 // Login (autenticação com MongoDB)
 router.post("/login", async (req, res) => {
   try {
     const data = await userModel.findOne({ nome: req.body.nome });
-    if (data!=null && validPassword(req.body.senha, data.hash, data.salt)) {
+    if (data != null && validPassword(req.body.senha, data.hash, data.salt)) {
       const token = jwt.sign(
         {
           id: data._id,
@@ -126,10 +123,19 @@ router.post("/login", async (req, res) => {
 
 // CRUD de usuários (admin only)
 
-// CREATE
+// CREATE com hash e salt
 router.post("/users", verificaJWT, verificaAdmin, async (req, res) => {
   try {
-    const user = new userModel(req.body);
+    const salt = randomBytes(16).toString('hex');
+    const hash = createHash('sha256').update(req.body.senha + salt).digest('hex');
+
+    const user = new userModel({
+      nome: req.body.nome,
+      hash: hash,
+      salt: salt,
+      admin: req.body.admin || false
+    });
+
     await user.save();
     res.json(user);
   } catch (error) {
@@ -169,12 +175,4 @@ router.delete("/users/:id", verificaJWT, verificaAdmin, async (req, res) => {
   }
 });
 
-
-var { createHash } = require('crypto');
-function validPassword (senha, hashBD, saltBD) {
- hashCalculado=createHash('sha256').update(senha+saltBD).digest('hex');
- return hashCalculado === hashBD;
-};
-
 module.exports = router;
-
