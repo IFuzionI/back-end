@@ -3,6 +3,7 @@ const router = express.Router();
 const modeloTarefa = require("../models/tarefa");
 const userModel = require("../models/user");
 const jwt = require("jsonwebtoken");
+const bcrypt = require('bcrypt');
 
 // Criar nova tarefa
 router.post("/post", async (req, res) => {
@@ -55,16 +56,6 @@ router.patch("/update/:id", async (req, res) => {
   }
 });
 
-// Verificação simples (desativada, não usada mais)
-function verificaUsuarioSenha(req, res, next) {
-  if (req.body.nome !== "branqs" || req.body.senha !== "1234") {
-    return res
-      .status(401)
-      .json({ auth: false, message: "Usuario ou Senha incorreta" });
-  }
-  next();
-}
-
 // Autenticação JWT (verifica token)
 function verificaJWT(req, res, next) {
   const token = req.headers["id-token"];
@@ -80,7 +71,7 @@ function verificaJWT(req, res, next) {
         .json({ auth: false, message: "Falha na verificação do token" });
     }
     req.userId = decoded.id;
-    req.isAdmin = decoded.admin; // adiciona flag admin na request
+    req.isAdmin = decoded.admin;
     next();
   });
 }
@@ -106,17 +97,20 @@ async function verificaAdmin(req, res, next) {
 router.post("/login", async (req, res) => {
   try {
     const data = await userModel.findOne({ nome: req.body.nome });
-    if (data != null && data.senha === req.body.senha) {
-      const token = jwt.sign(
-        {
-          id: data._id,
-          nome: data.nome,
-          admin: data.admin === true,
-        },
-        "segredo",
-        { expiresIn: 300 } // token expira em 5 minutos
-      );
-      return res.json({ token: token });
+    if (data != null) {
+      const isPasswordValid = await bcrypt.compare(req.body.senha, data.senha);
+      if (isPasswordValid) {
+        const token = jwt.sign(
+          {
+            id: data._id,
+            nome: data.nome,
+            admin: data.admin === true,
+          },
+          "segredo",
+          { expiresIn: 300 }
+        );
+        return res.json({ token: token });
+      }
     }
     res.status(401).json({ message: "Login inválido!" });
   } catch (error) {
@@ -129,7 +123,15 @@ router.post("/login", async (req, res) => {
 // CREATE
 router.post("/users", verificaJWT, verificaAdmin, async (req, res) => {
   try {
-    const user = new userModel(req.body);
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(req.body.senha, saltRounds);
+
+    const user = new userModel({
+      nome: req.body.nome,
+      senha: hashedPassword,
+      admin: req.body.admin || false
+    });
+
     await user.save();
     res.json(user);
   } catch (error) {
@@ -150,7 +152,14 @@ router.get("/users", verificaJWT, verificaAdmin, async (req, res) => {
 // UPDATE
 router.patch("/users/:id", verificaJWT, verificaAdmin, async (req, res) => {
   try {
-    const user = await userModel.findByIdAndUpdate(req.params.id, req.body, {
+    const updateData = { ...req.body };
+
+    if (req.body.senha) {
+      const saltRounds = 10;
+      updateData.senha = await bcrypt.hash(req.body.senha, saltRounds);
+    }
+
+    const user = await userModel.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
     });
     res.json(user);
