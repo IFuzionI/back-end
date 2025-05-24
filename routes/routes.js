@@ -156,9 +156,31 @@ router.get("/users", verificaJWT, verificaAdmin, async (req, res) => {
 // UPDATE
 router.patch("/users/:id", verificaJWT, verificaAdmin, async (req, res) => {
   try {
-    const user = await userModel.findByIdAndUpdate(req.params.id, req.body, {
+    const id = req.params.id;
+    const updateData = { ...req.body };
+
+    // Bloquear atualização do _id
+    if (updateData._id) delete updateData._id;
+
+    // Se for atualizar senha, gere novo hash e salt
+    if (updateData.senha) {
+      const salt = randomBytes(16).toString('hex');
+      const hash = createHash('sha256').update(updateData.senha + salt).digest('hex');
+      updateData.hash = hash;
+      updateData.salt = salt;
+      delete updateData.senha; // remover senha em texto do update
+    }
+
+    // Atualiza o usuário
+    const user = await userModel.findByIdAndUpdate(id, updateData, {
       new: true,
+      runValidators: true,
     });
+
+    if (!user) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
     res.json(user);
   } catch (error) {
     res.status(500).json({ message: error.message });
